@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+
+        <com.dzenm.banner.BannerLayout
+            android:id="@+id/banner_loop"
+            android:layout_width="match_parent"
+            android:layout_height="250dp"
+            tools:ignore="MissingConstraints" />
+
+        <com.dzenm.banner.BannerLayout
+            android:id="@+id/banner_unloop"
+            android:layout_width="match_parent"
+            android:layout_height="250dp"
+            tools:ignore="MissingConstraints" />
+
+        <com.dzenm.banner.BannerLayout
+            android:id="@+id/banner_gallery"
+            android:layout_width="match_parent"
+            android:layout_height="180dp"
+            tools:ignore="MissingConstraints" />
+
+    </LinearLayout>
+</ScrollView>
