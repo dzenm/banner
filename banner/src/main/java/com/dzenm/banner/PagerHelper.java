@@ -5,18 +5,19 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
+import androidx.viewpager.widget.PagerAdapter;
 import androidx.viewpager.widget.ViewPager;
 
 /**
  * @author dzenm
  * @date 2019-08-08 16:32
  */
-class PagerChangerHelper implements ViewPager.OnPageChangeListener, ViewTreeObserver.OnGlobalLayoutListener {
+class PagerHelper implements ViewPager.OnPageChangeListener, ViewTreeObserver.OnGlobalLayoutListener {
 
-    final static int LEFT_PAGE = 0;         // 左边显示页（根据index来调整左边页应该显示的图片）
-    final static int CENTER_PAGE = 1;       // 中间显示页（永远停留在本页）
-    final static int RIGHT_PAGE = 2;        // 右边显示页（根据index来调整右边页应该显示的图片）
-    final static int COUNT_PAGE = 3;        // 创建页面对象的个数
+    final static int LEFT_PAGE = 0;                 // 左边显示页（根据index来调整左边页应该显示的图片）
+    private final static int CENTER_PAGE = 1;       // 中间显示页（永远停留在本页）
+    final static int RIGHT_PAGE = 2;                // 右边显示页（根据index来调整右边页应该显示的图片）
+    final static int COUNT_PAGE = 3;                // 创建页面对象的个数
 
     private ViewPager mViewPager;
     private LinearLayout mIndicatorLayout;
@@ -47,10 +48,13 @@ class PagerChangerHelper implements ViewPager.OnPageChangeListener, ViewTreeObse
      */
     private int mCurrentViewPosition;
 
-    private OnViewChangeListener mOnViewChangeListener;
+    private OnViewPagerChangeListener mOnViewPagerChangeListener;
 
-    void setAdapter(ViewPagerAdapter adapter) {
+    private PagerLayout.OnPageSelectedListener mOnPageSelectedListener;
+
+    void setAdapter(PagerAdapter adapter) {
         mViewPager.setAdapter(adapter);                                  // 设置ViewPager适配器
+        mViewPager.setOffscreenPageLimit(COUNT_PAGE);
         mViewPager.setCurrentItem(isLoop ? CENTER_PAGE : LEFT_PAGE);
         mViewPager.addOnPageChangeListener(this);                        // 监听ViewPager滑动
     }
@@ -85,8 +89,12 @@ class PagerChangerHelper implements ViewPager.OnPageChangeListener, ViewTreeObse
         return mCurrentViewPosition;
     }
 
-    void setOnViewChangeListener(OnViewChangeListener onViewChangeListener) {
-        mOnViewChangeListener = onViewChangeListener;
+    void setOnViewPagerChangeListener(OnViewPagerChangeListener onViewPagerChangeListener) {
+        mOnViewPagerChangeListener = onViewPagerChangeListener;
+    }
+
+    void setOnPageSelectedListener(PagerLayout.OnPageSelectedListener onPageSelectedListener) {
+        mOnPageSelectedListener = onPageSelectedListener;
     }
 
     /**
@@ -122,6 +130,15 @@ class PagerChangerHelper implements ViewPager.OnPageChangeListener, ViewTreeObse
         }
     }
 
+    /**
+     * 指示器的移动的行为
+     *
+     * @param position        指示器的位置
+     * @param offset          偏移量
+     * @param currentPosition 当前实际所在的位置
+     * @param size            总的View的个数
+     * @return 指示器的实际运动量
+     */
     private float indicatorBehavior(int position, float offset, int currentPosition, int size) {
         float offsetDistance = 0;
         if (position == 0) {                    // 左滑(offset从1.0-0.0结束)
@@ -172,24 +189,24 @@ class PagerChangerHelper implements ViewPager.OnPageChangeListener, ViewTreeObse
          * 判断当前位置是否为数据起始位置，如果是（即0）将左页的数据设置为最后一个数据
          */
         if (mCurrentViewPosition == 0) {
-            mOnViewChangeListener.onViewChange(LEFT_PAGE, mViewCount - 1);
+            mOnViewPagerChangeListener.onViewPagerChange(LEFT_PAGE, mViewCount - 1);
         } else {
-            mOnViewChangeListener.onViewChange(LEFT_PAGE, mCurrentViewPosition - 1);
+            mOnViewPagerChangeListener.onViewPagerChange(LEFT_PAGE, mCurrentViewPosition - 1);
         }
 
         /*
          * 设置中间页的数据
          */
-        mOnViewChangeListener.onViewChange(CENTER_PAGE, mCurrentViewPosition);
+        mOnViewPagerChangeListener.onViewPagerChange(CENTER_PAGE, mCurrentViewPosition);
 
         /*
          * 设置右页的数据
          * 判断当前位置是否为数据末尾，如果是（即size-1）将右边的数据设置为第一个数据
          */
         if (mCurrentViewPosition == mViewCount - 1) {
-            mOnViewChangeListener.onViewChange(RIGHT_PAGE, 0);
+            mOnViewPagerChangeListener.onViewPagerChange(RIGHT_PAGE, 0);
         } else {
-            mOnViewChangeListener.onViewChange(RIGHT_PAGE, mCurrentViewPosition + 1);
+            mOnViewPagerChangeListener.onViewPagerChange(RIGHT_PAGE, mCurrentViewPosition + 1);
         }
         /*
          * 滑动结束后将当前页设置为第二页
@@ -200,6 +217,9 @@ class PagerChangerHelper implements ViewPager.OnPageChangeListener, ViewTreeObse
 
     @Override
     public void onPageSelected(int position) {
+        if (mOnPageSelectedListener != null) {
+            mOnPageSelectedListener.onPageSelected(position);
+        }
     }
 
     /**
@@ -215,9 +235,7 @@ class PagerChangerHelper implements ViewPager.OnPageChangeListener, ViewTreeObse
     public void onPageScrollStateChanged(int state) {
     }
 
-    interface OnViewChangeListener {
-
-        void onViewChange(int currentView, int position);
-
+    interface OnViewPagerChangeListener {
+        void onViewPagerChange(int viewPosition, int position);
     }
 }

@@ -1,15 +1,12 @@
 package com.dzenm.banner;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
-import android.graphics.Bitmap;
+import android.content.res.TypedArray;
 import android.util.AttributeSet;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
-
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
-import com.bumptech.glide.request.RequestOptions;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,12 +14,65 @@ import java.util.List;
 /**
  * @author dzenm
  * @date 2019-08-09 22:01
+ * <pre>
+ * 在layout中添加布局
+ * <com.dzenm.banner.BannerLayout
+ *       android:id="@+id/banner_gallery"
+ *       android:layout_width="match_parent"
+ *       android:layout_height="180dp" />
+ *  final List<Integer> list = new ArrayList<>();
+ *  list.add(R.drawable.one);
+ *  list.add(R.drawable.two);
+ *  list.add(R.drawable.three);
+ *  list.add(R.drawable.four);
+ *  list.add(R.drawable.five);
+ *  list.add(R.drawable.six);
+ *  list.add(R.drawable.seven);
+ *
+ * 必须要自定义ImageLoader, 建议使用Glide
+ * public class MyImageLoader implements ImageLoader {
+ *     @Override
+ *     public void onLoader(View view, Object imageResource) {
+ *         RoundedCorners rc = new RoundedCorners(8);
+ *         RequestOptions options = RequestOptions.bitmapTransform(rc);
+ *         Glide.with(view.getContext()).load(imageResource).apply(options).into((ImageView) view);
+ *     }
+ * }
+ *
+ * 可循环的banner
+ * BannerLayout loopBanner = findViewById(R.id.banner_loop);
+ * loopBanner.setLoop(true)
+ *     .setImageLoader(new MyImageLoader())
+ *     .setIndicator(true)
+ *     .load(list)
+ *     .build();
+ *
+ * 不可循环的banner
+ * BannerLayout unLoopBanner = findViewById(R.id.banner_unloop);
+ * unLoopBanner.setLoop(false)
+ *     .setIndicator(true)
+ *     .setImageLoader(new MyImageLoader())
+ *     .setIndicatorResource(R.drawable.select_indicator, R.drawable.unselect_indicator)
+ *     .addIndicatorRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
+ *     .addIndicatorRule(RelativeLayout.ALIGN_PARENT_RIGHT)
+ *     .setIndicatorMargin(0, 0, 40, 30)
+ *     .load(list)
+ *     .build();
+ *
+ * 画廊效果
+ * BannerLayout galleryBanner = findViewById(R.id.banner_gallery);
+ * galleryBanner.setLoop(true)
+ *     .setIndicator(true)
+ *     .setImageLoader(new MyImageLoader())
+ *     .setViewPagerMarginHorizontal(40)
+ *     .setGallery(true)
+ *     .addIndicatorRule(RelativeLayout.ALIGN_PARENT_RIGHT)
+ *     .setIndicatorMargin(0, 30, 40, 0)
+ *     .load(list)
+ *     .build();
+ * </pre>
  */
 public class BannerLayout extends PagerLayout implements IIndicator {
-
-    private static final int IMAGE_URL = 1;
-    private static final int IMAGE_BITMAP = 2;
-    private static final int IMAGE_RESOURCE = 3;
 
     /**
      * 指示灯的Layout和选中的指示灯
@@ -33,37 +83,29 @@ public class BannerLayout extends PagerLayout implements IIndicator {
     private ImageView mIndicatorImageView;
 
     /**
-     * 图片
+     * 图片, 可以使用url, bitmap, drawable, resource
      */
-    private String[] mUrl;
-    private Bitmap[] mBitmap;
-    private int[] mImageResource;
-
-    /**
-     * 图片类型
-     */
-    private int mImageType;
-
-    /**
-     * 图片的圆角值 {@link #setRadius(int)} )}
-     */
-    private int mRadius = 8;
+    private List mImages;
 
     /**
      * 是否显示指示灯 {@link #setIndicator(boolean)}
      */
-    private boolean isShowIndicator = false;
+    private boolean isShowIndicator;
+
+    /**
+     * 指示器的图片 {@link #setIndicatorResource(int, int)} )}
+     */
+    private int mSelectedIndicator, mUnSelectedIndicator;
+
+    /**
+     * 图片加载, 使用第三方框架加载 {@link ImageLoader}
+     */
+    private ImageLoader mImageLoader;
 
     /**
      * 自定义指示器 {@link #setIIndicator(IIndicator)}
      */
     private IIndicator mIIndicator;
-
-    /**
-     * 指示器的图片 {@link #setIndicatorResource(int, int)} )}
-     */
-    private int mSelectedIndicator = R.drawable.select;
-    private int mUnSelectedIndicator = R.drawable.unselect;
 
     public BannerLayout(Context context) {
         this(context, null);
@@ -75,6 +117,13 @@ public class BannerLayout extends PagerLayout implements IIndicator {
 
     public BannerLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+
+        @SuppressLint("Recycle") TypedArray t = context.obtainStyledAttributes(attrs, R.styleable.BannerLayout);
+        mSelectedIndicator = t.getInteger(R.styleable.BannerLayout_selectorIndicator, R.drawable.select);
+        mUnSelectedIndicator = t.getInteger(R.styleable.BannerLayout_selectorIndicator, R.drawable.unselect);
+        isShowIndicator = t.getBoolean(R.styleable.BannerLayout_showIndicator, true);
+
+        t.recycle();
         initializeView(context);
     }
 
@@ -90,11 +139,11 @@ public class BannerLayout extends PagerLayout implements IIndicator {
         addView(mRootLayout);
 
         // 未选中的一组指示器的布局
-        RelativeLayout.LayoutParams unIndicatorParams = new RelativeLayout.LayoutParams(
+        LinearLayout.LayoutParams unIndicatorParams = new LinearLayout.LayoutParams(
                 LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
         mIndicatorLayout = new LinearLayout(context);
         mIndicatorLayout.setLayoutParams(unIndicatorParams);
-        mIndicatorLayout.setLayoutDirection(LinearLayout.HORIZONTAL);
+        mIndicatorLayout.setOrientation(LinearLayout.HORIZONTAL);
         mRootLayout.addView(mIndicatorLayout);
 
         // 选中的指示器
@@ -121,6 +170,11 @@ public class BannerLayout extends PagerLayout implements IIndicator {
     }
 
     @Override
+    public BannerLayout setTransformerStyle(int transformerStyle) {
+        return super.setTransformerStyle(transformerStyle);
+    }
+
+    @Override
     public BannerLayout setLoop(boolean loop) {
         return super.setLoop(loop);
     }
@@ -135,29 +189,19 @@ public class BannerLayout extends PagerLayout implements IIndicator {
         return super.setOnItemClickListener(itemClickListener);
     }
 
-    public BannerLayout setImage(String[] urls) {
-        mUrl = urls;
-        mViewCount = urls.length;
-        mImageType = IMAGE_URL;
-        return this;
+    @Override
+    public BannerLayout setOnPageSelectedListener(OnPageSelectedListener onPageSelectedListener) {
+        return super.setOnPageSelectedListener(onPageSelectedListener);
     }
 
-    public BannerLayout setImage(Bitmap[] bitmaps) {
-        mBitmap = bitmaps;
-        mViewCount = bitmaps.length;
-        mImageType = IMAGE_BITMAP;
-        return this;
+    @Override
+    public BannerLayout setTransformer(PageTransformer pageTransformer) {
+        return super.setTransformer(pageTransformer);
     }
 
-    public BannerLayout setImage(int[] imageResources) {
-        mImageResource = imageResources;
-        mViewCount = imageResources.length;
-        mImageType = IMAGE_RESOURCE;
-        return this;
-    }
-
-    public BannerLayout setRadius(int radius) {
-        mRadius = radius;
+    public BannerLayout load(List lists) {
+        mImages = lists;
+        mViewCount = lists.size();
         return this;
     }
 
@@ -182,8 +226,19 @@ public class BannerLayout extends PagerLayout implements IIndicator {
         return this;
     }
 
+    public BannerLayout setImageLoader(ImageLoader imageLoader) {
+        mImageLoader = imageLoader;
+        return this;
+    }
+
     public BannerLayout setIIndicator(IIndicator iIndicator) {
         mIIndicator = iIndicator;
+        return this;
+    }
+
+    public BannerLayout setIndicatorVisible(int visible) {
+        mIndicatorLayout.setVisibility(visible);
+        mIndicatorImageView.setVisibility(visible);
         return this;
     }
 
@@ -193,12 +248,12 @@ public class BannerLayout extends PagerLayout implements IIndicator {
     }
 
     @Override
-    protected void buildViewPager(PagerChangerHelper pagerChangerHelper) {
-        super.buildViewPager(pagerChangerHelper);
+    protected void buildViewPager(PagerHelper pagerHelper) {
+        super.buildViewPager(pagerHelper);
         if (isShowIndicator) {
-            pagerChangerHelper.setShowIndicator(isShowIndicator);
-            pagerChangerHelper.setIndicatorLayout(mIndicatorLayout);
-            pagerChangerHelper.setIndicatorImageView(mIndicatorImageView);
+            pagerHelper.setShowIndicator(true);
+            pagerHelper.setIndicatorLayout(mIndicatorLayout);
+            pagerHelper.setIndicatorImageView(mIndicatorImageView);
             if (mIIndicator == null) {
                 createIndicator(mIndicatorLayout, dp2px(4), mViewCount);
             } else {
@@ -227,15 +282,8 @@ public class BannerLayout extends PagerLayout implements IIndicator {
     }
 
     @Override
-    public void onViewChange(int currentView, int position) {
-        RoundedCorners rc = new RoundedCorners(dp2px(mRadius));
-        RequestOptions options = RequestOptions.bitmapTransform(rc);
-        if (mImageType == IMAGE_URL) {
-            Glide.with(mActivity).load(mUrl[position]).apply(options).into((ImageView) mViews.get(currentView));
-        } else if (mImageType == IMAGE_BITMAP) {
-            Glide.with(mActivity).load(mBitmap[position]).apply(options).into((ImageView) mViews.get(currentView));
-        } else if (mImageType == IMAGE_RESOURCE) {
-            Glide.with(mActivity).load(mImageResource[position]).apply(options).into((ImageView) mViews.get(currentView));
-        }
+    public void onViewPagerChange(int viewPosition, int position) {
+        super.onViewPagerChange(viewPosition, position);
+        mImageLoader.onLoader(mViews.get(viewPosition), mImages.get(position));
     }
 }

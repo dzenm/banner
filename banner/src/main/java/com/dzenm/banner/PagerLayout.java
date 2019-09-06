@@ -1,14 +1,17 @@
 package com.dzenm.banner;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
+import android.content.res.TypedArray;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
+import androidx.annotation.NonNull;
 import androidx.viewpager.widget.ViewPager;
 
 import java.util.ArrayList;
@@ -20,7 +23,7 @@ import java.util.TimerTask;
  * @author dzenm
  * @date 2019-08-09 21:28
  */
-public class PagerLayout extends RelativeLayout implements IView, View.OnClickListener, PagerChangerHelper.OnViewChangeListener {
+public class PagerLayout extends RelativeLayout implements IView, View.OnClickListener, PagerHelper.OnViewPagerChangeListener {
 
     protected Activity mActivity;
     private ViewPager mViewPager;
@@ -46,7 +49,7 @@ public class PagerLayout extends RelativeLayout implements IView, View.OnClickLi
      * View之间的外边间距值, 用于使用一些其它的效果时, 配合使用
      * 默认的外边距值为8dp, {@link #setPagerMargin(int)}
      */
-    private int mViewMargin = dp2px(8);
+    private int mViewMargin;
 
     /**
      * ViewPager外边距, 建议配合 {@link #setGallery(boolean)} 一起使用
@@ -56,6 +59,13 @@ public class PagerLayout extends RelativeLayout implements IView, View.OnClickLi
     private int[] mViewPagerMargins = new int[4];
 
     /**
+     * 切换的效果类型, 当切换类型为STYLE_COVER时, 使用gallery方式会无效果， 不建议混合使用
+     * 设置的类型详见 {@link TransformerStyle}
+     */
+    private @TransformerStyle
+    int mTransformerStyle = TransformerStyle.STYLE_NONE;
+
+    /**
      * 定时器, 定时切换页面
      */
     private Timer mTimer;
@@ -63,22 +73,26 @@ public class PagerLayout extends RelativeLayout implements IView, View.OnClickLi
     /**
      * 是否循环显示页面 {@link #setLoop(boolean)} )}
      */
-    private boolean isLoop = true;
+    private boolean isLoop;
 
     /**
      * 是否显示画廊效果 {@link #setGallery(boolean)}
      */
-    private boolean isGallery = false;
+    private boolean isGallery;
 
     /**
      * 自定义页面 {@link #setIView(IView)}
      */
     private IView mIView;
 
+    private PageTransformer mPageTransformer;
+
     /**
      * Item点击事件 {@link #setOnItemClickListener(OnItemClickListener)}
      */
     private OnItemClickListener onItemClickListener;
+
+    private OnPageSelectedListener mOnPageSelectedListener;
 
     public PagerLayout(Context context) {
         this(context, null);
@@ -91,6 +105,13 @@ public class PagerLayout extends RelativeLayout implements IView, View.OnClickLi
     public PagerLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         mActivity = (Activity) context;
+
+        @SuppressLint("Recycle") TypedArray t = context.obtainStyledAttributes(attrs, R.styleable.PagerLayout);
+        isLoop = t.getBoolean(R.styleable.PagerLayout_loop, true);
+        isGallery = t.getBoolean(R.styleable.PagerLayout_gallery, false);
+        mViewMargin = (int) t.getDimension(R.styleable.PagerLayout_viewMargin, dp2px(8));
+
+        t.recycle();
         initializeView(context);
     }
 
@@ -118,6 +139,11 @@ public class PagerLayout extends RelativeLayout implements IView, View.OnClickLi
         return (T) this;
     }
 
+    public <T extends PagerLayout> T setTransformerStyle(int transformerStyle) {
+        mTransformerStyle = transformerStyle;
+        return (T) this;
+    }
+
     public <T extends PagerLayout> T setLoop(boolean loop) {
         isLoop = loop;
         return (T) this;
@@ -133,8 +159,19 @@ public class PagerLayout extends RelativeLayout implements IView, View.OnClickLi
         return (T) this;
     }
 
+    public <T extends PagerLayout> T setOnPageSelectedListener(OnPageSelectedListener onPageSelectedListener) {
+        mOnPageSelectedListener = onPageSelectedListener;
+        return (T) this;
+    }
+
     public <T extends PagerLayout> T setIView(IView iView) {
         mIView = iView;
+        return (T) this;
+    }
+
+    public <T extends PagerLayout> T setTransformer(PageTransformer pageTransformer) {
+        mPageTransformer = pageTransformer;
+        mTransformerStyle = TransformerStyle.STYLE_DIY;
         return (T) this;
     }
 
@@ -168,7 +205,7 @@ public class PagerLayout extends RelativeLayout implements IView, View.OnClickLi
      */
     public void nextPage() {
         // 因为位置始终为1 那么下一页就始终为2
-        mViewPager.setCurrentItem(PagerChangerHelper.RIGHT_PAGE, true);
+        mViewPager.setCurrentItem(PagerHelper.RIGHT_PAGE, true);
     }
 
     /**
@@ -176,7 +213,7 @@ public class PagerLayout extends RelativeLayout implements IView, View.OnClickLi
      */
     public void lastPage() {
         // 因为位置始终为1 那么上一页就始终为0
-        mViewPager.setCurrentItem(PagerChangerHelper.LEFT_PAGE, true);
+        mViewPager.setCurrentItem(PagerHelper.LEFT_PAGE, true);
     }
 
     /**
@@ -199,36 +236,41 @@ public class PagerLayout extends RelativeLayout implements IView, View.OnClickLi
      * 进行配置完之后, 最后调用该方法创建一个多页面滑动显示的View
      */
     public <T extends PagerLayout> T build() {
-        PagerChangerHelper pagerChangerHelper = new PagerChangerHelper();
-        buildViewPager(pagerChangerHelper);
+        PagerHelper pagerHelper = new PagerHelper();
+        buildViewPager(pagerHelper);
         buildView();
-        pagerChangerHelper.setAdapter(new ViewPagerAdapter(mViews));
+        pagerHelper.setAdapter(new ViewPagerAdapter(mViews));
         return (T) this;
     }
 
     /**
      * 创建ViewPager, 以及一些ViewPager的设置
      */
-    protected void buildViewPager(PagerChangerHelper pagerChangerHelper) {
+    protected void buildViewPager(PagerHelper pagerHelper) {
         mViewPagerParams.setMargins(dp2px(mViewPagerMargins[0]), dp2px(mViewPagerMargins[1]),
                 dp2px(mViewPagerMargins[2]), dp2px(mViewPagerMargins[3]));
+
         if (isGallery) {
             setClipChildren(false);
             mViewPager.setClipChildren(false);
-            mViewPager.setPageTransformer(true, new PagerLayoutTransformer());
         }
-        pagerChangerHelper.setOnViewChangeListener(this);
-        pagerChangerHelper.setViewCount(mViewCount);
-        pagerChangerHelper.setViewPager(mViewPager);
-        mCurrentViewPosition = pagerChangerHelper.getCurrentViewPosition();
-        pagerChangerHelper.setLoop(isLoop);
+
+        mViewPager.setPageTransformer(false,
+                new PagerTransformer(mTransformerStyle, mViewPager, mPageTransformer));
+
+        pagerHelper.setOnViewPagerChangeListener(this);
+        pagerHelper.setOnPageSelectedListener(mOnPageSelectedListener);
+        pagerHelper.setViewCount(mViewCount);
+        pagerHelper.setViewPager(mViewPager);
+        mCurrentViewPosition = pagerHelper.getCurrentViewPosition();
+        pagerHelper.setLoop(isLoop);
     }
 
     /**
      * 创建View
      */
     private void buildView() {
-        int length = isLoop ? PagerChangerHelper.COUNT_PAGE : mViewCount;
+        int length = isLoop ? PagerHelper.COUNT_PAGE : mViewCount;
         mViews = new ArrayList<>();
         if (mIView == null)
             createView(mViews, isLoop, length);
@@ -241,14 +283,14 @@ public class PagerLayout extends RelativeLayout implements IView, View.OnClickLi
         for (int i = 0; i < length; i++) {
             views.add(getView(true));
             int index = isLoop ? (i == 0 ? length - 1 : i - 1) : i;
-            onViewChange(i, index);
+            onViewPagerChange(i, index);
         }
     }
 
     protected View getView(boolean isAddMargin) {
         ImageView view = new ImageView(mActivity);
         view.setOnClickListener(this);
-        if (!isGallery)
+        if (mTransformerStyle != TransformerStyle.STYLE_3D)
             if (isAddMargin)
                 view.setPadding(mViewMargin, mViewMargin, mViewMargin, mViewMargin);
         if (view instanceof ImageView)
@@ -257,7 +299,7 @@ public class PagerLayout extends RelativeLayout implements IView, View.OnClickLi
     }
 
     @Override
-    public void onViewChange(int currentView, int position) {
+    public void onViewPagerChange(int viewPosition, int position) {
     }
 
     @Override
@@ -269,8 +311,17 @@ public class PagerLayout extends RelativeLayout implements IView, View.OnClickLi
         void onItemClick(int position);
     }
 
-    static int dp2px(int value) {
+    public interface OnPageSelectedListener {
+        void onPageSelected(int position);
+    }
+
+    public static int dp2px(int value) {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value,
                 Resources.getSystem().getDisplayMetrics());
+    }
+
+    public interface PageTransformer {
+
+        void transformPage(@NonNull View page, @NonNull ViewPager viewPager, float position);
     }
 }
