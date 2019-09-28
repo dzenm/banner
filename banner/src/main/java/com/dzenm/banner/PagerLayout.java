@@ -14,6 +14,11 @@ import android.widget.RelativeLayout;
 import androidx.annotation.NonNull;
 import androidx.viewpager.widget.ViewPager;
 
+import com.dzenm.banner.impl.IView;
+import com.dzenm.banner.impl.OnItemClickListener;
+import com.dzenm.banner.impl.OnPageSelectedListener;
+import com.dzenm.banner.impl.PageTransformer;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
@@ -23,7 +28,7 @@ import java.util.TimerTask;
  * @author dzenm
  * @date 2019-08-09 21:28
  */
-public class PagerLayout extends RelativeLayout implements IView, View.OnClickListener, PagerHelper.OnViewPagerChangeListener {
+public class PagerLayout extends RelativeLayout implements IView, View.OnClickListener, OnViewPagerChangeListener {
 
     protected Activity mActivity;
     private ViewPager mViewPager;
@@ -85,6 +90,9 @@ public class PagerLayout extends RelativeLayout implements IView, View.OnClickLi
      */
     private IView mIView;
 
+    /**
+     * 页面跳转时的view动画 {@link #setTransformer(PageTransformer)}
+     */
     private PageTransformer mPageTransformer;
 
     /**
@@ -112,15 +120,17 @@ public class PagerLayout extends RelativeLayout implements IView, View.OnClickLi
         mViewMargin = (int) t.getDimension(R.styleable.PagerLayout_viewMargin, dp2px(8));
 
         t.recycle();
-        initializeView(context);
+        initializeViewPager(context);
     }
 
-    private void initializeView(Context context) {
+    private void initializeViewPager(Context context) {
         mViewPagerParams = new RelativeLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
         mViewPager = new ViewPager(context);
         mViewPager.setLayoutParams(mViewPagerParams);
         addView(mViewPager);
     }
+
+    /************************************* 以下为自定义方法 *********************************/
 
     public <T extends PagerLayout> T setPagerMargin(int viewMargin) {
         mViewMargin = dp2px(viewMargin);
@@ -191,6 +201,21 @@ public class PagerLayout extends RelativeLayout implements IView, View.OnClickLi
     }
 
     /**
+     * 定时跳转
+     */
+    private TimerTask mTimerTask = new TimerTask() {
+        @Override
+        public void run() {
+            mActivity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    nextPage();
+                }
+            });
+        }
+    };
+
+    /**
      * 防止内存泄露
      */
     public void destroy() {
@@ -216,29 +241,16 @@ public class PagerLayout extends RelativeLayout implements IView, View.OnClickLi
         mViewPager.setCurrentItem(PagerHelper.LEFT_PAGE, true);
     }
 
-    /**
-     * 定时跳转
-     */
-    private TimerTask mTimerTask = new TimerTask() {
-        @Override
-        public void run() {
-            mActivity.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    nextPage();
-                }
-            });
-        }
-    };
+    /************************************* 以下为实现的细节 *********************************/
 
     /**
      * 该方法会进行一些配置, 包括ViewPager的配置, View的创建, 以及Adapter的设置
      * 进行配置完之后, 最后调用该方法创建一个多页面滑动显示的View
      */
     public <T extends PagerLayout> T build() {
-        PagerHelper pagerHelper = new PagerHelper();
+        PagerHelper pagerHelper = new PagerHelper(mViewPager, mViewCount, isLoop);
         buildViewPager(pagerHelper);
-        buildView();
+        buildView(pagerHelper);
         pagerHelper.setAdapter(new ViewPagerAdapter(mViews));
         return (T) this;
     }
@@ -260,17 +272,14 @@ public class PagerLayout extends RelativeLayout implements IView, View.OnClickLi
 
         pagerHelper.setOnViewPagerChangeListener(this);
         pagerHelper.setOnPageSelectedListener(mOnPageSelectedListener);
-        pagerHelper.setViewCount(mViewCount);
-        pagerHelper.setViewPager(mViewPager);
         mCurrentViewPosition = pagerHelper.getCurrentViewPosition();
-        pagerHelper.setLoop(isLoop);
     }
 
     /**
      * 创建View
      */
-    private void buildView() {
-        int length = isLoop ? PagerHelper.COUNT_PAGE : mViewCount;
+    private void buildView(PagerHelper pagerHelper) {
+        int length = pagerHelper.getViewCount();
         mViews = new ArrayList<>();
         if (mIView == null)
             createView(mViews, isLoop, length);
@@ -282,7 +291,7 @@ public class PagerLayout extends RelativeLayout implements IView, View.OnClickLi
     public void createView(List<View> views, boolean isLoop, int length) {
         for (int i = 0; i < length; i++) {
             views.add(getView(true));
-            int index = isLoop ? (i == 0 ? length - 1 : i - 1) : i;
+            int index = isLoop ? (i < 2 ? length - (2 - i) : i - 2) : i;
             onViewPagerChange(i, index);
         }
     }
@@ -290,11 +299,12 @@ public class PagerLayout extends RelativeLayout implements IView, View.OnClickLi
     protected View getView(boolean isAddMargin) {
         ImageView view = new ImageView(mActivity);
         view.setOnClickListener(this);
-        if (mTransformerStyle != TransformerStyle.STYLE_3D)
-            if (isAddMargin)
+        if (mTransformerStyle != TransformerStyle.STYLE_3D) {
+            if (isAddMargin) {
                 view.setPadding(mViewMargin, mViewMargin, mViewMargin, mViewMargin);
-        if (view instanceof ImageView)
-            view.setScaleType(ImageView.ScaleType.FIT_XY);
+            }
+        }
+        view.setScaleType(ImageView.ScaleType.FIT_XY);
         return view;
     }
 
@@ -307,21 +317,8 @@ public class PagerLayout extends RelativeLayout implements IView, View.OnClickLi
         if (onItemClickListener != null) onItemClickListener.onItemClick(mCurrentViewPosition);
     }
 
-    public interface OnItemClickListener {
-        void onItemClick(int position);
-    }
-
-    public interface OnPageSelectedListener {
-        void onPageSelected(int position);
-    }
-
     public static int dp2px(int value) {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value,
                 Resources.getSystem().getDisplayMetrics());
-    }
-
-    public interface PageTransformer {
-
-        void transformPage(@NonNull View page, @NonNull ViewPager viewPager, float position);
     }
 }

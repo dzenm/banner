@@ -1,23 +1,21 @@
 package com.dzenm;
 
-import android.view.View;
 import android.widget.ImageView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
 import com.bumptech.glide.request.RequestOptions;
-import com.dzenm.banner.impl.ImageLoader;
+import com.dzenm.banner2.impl.ImageLoader;
 
 /**
  * @author dzenm
- * @date 2019-09-06 14:50
+ * @date 2019-09-11 08:44
  */
-public class MyImageLoader implements ImageLoader {
-
+public class MyTestImageLoader implements ImageLoader {
     @Override
-    public void onLoader(View view, Object imageResource) {
+    public void onLoader(ImageView view, Object imageResource) {
         RoundedCorners rc = new RoundedCorners(20);
         RequestOptions options = RequestOptions.bitmapTransform(rc);
-        Glide.with(view.getContext()).load(imageResource).apply(options).into((ImageView) view);
+        Glide.with(view.getContext()).load(imageResource).apply(options).into(view);
     }
 }

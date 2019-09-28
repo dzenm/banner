@@ -8,12 +8,13 @@ import androidx.viewpager.widget.ViewPager;
 
 import com.dzenm.banner.BannerLayout;
 import com.dzenm.banner.PagerLayout;
+import com.dzenm.banner.impl.PageTransformer;
 
 /**
  * @author dzenm
  * @date 2019-08-28 00:09
  */
-public class Transformers implements BannerLayout.PageTransformer {
+public class Transformers implements PageTransformer {
 
     private static final float CENTER_PAGE_SCALE = 1f;
 

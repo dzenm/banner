@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <declare-styleable name="BannerLayout">
-        <attr name="selectorIndicator" format="integer" />
-        <attr name="unSelectorIndicator" format="integer" />
+        <attr name="selectorIndicator" format="reference" />
+        <attr name="unSelectorIndicator" format="reference" />
         <attr name="showIndicator" format="boolean" />
     </declare-styleable>
 
     <declare-styleable name="PagerLayout">
         <attr name="loop" format="boolean" />
         <attr name="gallery" format="boolean" />
-        <attr name="viewMargin" format="dimension" />
+        <attr name="viewMargin" format="dimension|reference" />
     </declare-styleable>
 </resources>

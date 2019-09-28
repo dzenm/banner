@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="PagerLayout">
+        <attr name="loop" format="boolean" />
+        <attr name="gallery" format="boolean" />
+        <attr name="itemViewMargin" format="dimension|reference" />
+    </declare-styleable>
+
+    <declare-styleable name="IndicatorView">
+        <attr name="indicatorScrollType" format="enum">
+            <enum name="scale" value="0" />
+            <enum name="split" value="1" />
+        </attr>
+        <attr name="normalRadius" format="dimension|reference" />
+        <attr name="selectedRadius" format="dimension|reference" />
+        <attr name="normalColor" format="color|reference" />
+        <attr name="selectedColor" format="color|reference" />
+        <attr name="pointInterval" format="dimension|reference" />
+    </declare-styleable>
+</resources>

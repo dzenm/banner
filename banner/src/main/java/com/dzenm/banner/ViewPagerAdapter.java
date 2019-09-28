@@ -8,6 +8,8 @@ import android.view.ViewParent;
 import androidx.annotation.NonNull;
 import androidx.viewpager.widget.PagerAdapter;
 
+import com.dzenm.banner.impl.OnRenderItemViewListener;
+
 import java.util.List;
 
 /**
@@ -74,9 +76,5 @@ class ViewPagerAdapter extends PagerAdapter {
     @Override
     public void destroyItem(@NonNull ViewGroup container, int position, @NonNull Object object) {
         container.removeView((View) object);
-    }
-
-    public interface OnRenderItemViewListener {
-        void onRenderItemView(View itemView, int position);
     }
 }

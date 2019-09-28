@@ -1,4 +1,4 @@
-package com.dzenm.banner;
+package com.dzenm.banner.impl;
 
 import android.widget.LinearLayout;
 

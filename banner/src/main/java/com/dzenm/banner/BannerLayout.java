@@ -8,6 +8,12 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
+import com.dzenm.banner.impl.IIndicator;
+import com.dzenm.banner.impl.ImageLoader;
+import com.dzenm.banner.impl.OnItemClickListener;
+import com.dzenm.banner.impl.OnPageSelectedListener;
+import com.dzenm.banner.impl.PageTransformer;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -202,6 +208,9 @@ public class BannerLayout extends PagerLayout implements IIndicator {
     public BannerLayout load(List lists) {
         mImages = lists;
         mViewCount = lists.size();
+        if (mViewCount <= 2) {
+            throw new NumberFormatException("lists must more than two");
+        }
         return this;
     }
 
@@ -251,7 +260,7 @@ public class BannerLayout extends PagerLayout implements IIndicator {
     protected void buildViewPager(PagerHelper pagerHelper) {
         super.buildViewPager(pagerHelper);
         if (isShowIndicator) {
-            pagerHelper.setShowIndicator(true);
+            pagerHelper.setShowIndicator();
             pagerHelper.setIndicatorLayout(mIndicatorLayout);
             pagerHelper.setIndicatorImageView(mIndicatorImageView);
             if (mIIndicator == null) {
