@@ -9,6 +9,14 @@
     <declare-styleable name="PagerLayout">
         <attr name="loop" format="boolean" />
         <attr name="gallery" format="boolean" />
-        <attr name="viewMargin" format="dimension|reference" />
+        <attr name="image_margin" format="dimension|reference" />
+        <attr name="pager_margin_vertical" format="dimension|reference" />
+        <attr name="pager_margin_horizontal" format="dimension|reference" />
+        <attr name="transformerStyle" format="enum">
+            <enum name="none" value="1" />
+            <enum name="film" value="2" />
+            <enum name="cover" value="3" />
+            <enum name="fold" value="4" />
+        </attr>
     </declare-styleable>
 </resources>

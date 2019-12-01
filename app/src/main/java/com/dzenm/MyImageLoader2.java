@@ -11,7 +11,7 @@ import com.dzenm.banner2.impl.ImageLoader;
  * @author dzenm
  * @date 2019-09-11 08:44
  */
-public class MyTestImageLoader implements ImageLoader {
+public class MyImageLoader2 implements ImageLoader {
     @Override
     public void onLoader(ImageView view, Object imageResource) {
         RoundedCorners rc = new RoundedCorners(20);

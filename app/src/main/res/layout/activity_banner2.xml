@@ -31,8 +31,7 @@
         android:id="@+id/btn_type1"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="20dp"
-        android:layout_marginVertical="20dp"
+        android:layout_margin="20dp"
         android:text="样式一" />
 
     <Button
@@ -40,7 +39,25 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="20dp"
-        android:layout_marginVertical="20dp"
         android:text="样式二" />
+
+    <com.dzenm.banner2.PagerLayout
+        android:id="@+id/pl_gallery1"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_marginHorizontal="40dp"
+        android:layout_marginVertical="20dp">
+
+        <com.dzenm.banner2.IndicatorView
+            android:id="@+id/custom_indicator1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentBottom="true"
+            android:layout_gravity="center_vertical"
+            android:layout_marginRight="20dp"
+            android:layout_marginBottom="20dp"
+            app:indicatorScrollType="split" />
+    </com.dzenm.banner2.PagerLayout>
 
 </LinearLayout>

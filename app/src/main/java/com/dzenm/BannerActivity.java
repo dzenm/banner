@@ -1,11 +1,11 @@
 package com.dzenm;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.os.Bundle;
 
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.dzenm.banner.BannerLayout;
-import com.dzenm.banner.TransformerStyle;
+import com.dzenm.banner.impl.TransformerStyle;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +17,7 @@ public class BannerActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_banner);
 
-        final List<Integer> list = new ArrayList<>();
+        List<Integer> list = new ArrayList<>();
         list.add(R.drawable.one);
         list.add(R.drawable.two);
         list.add(R.drawable.three);
@@ -27,12 +27,17 @@ public class BannerActivity extends AppCompatActivity {
         list.add(R.drawable.seven);
 
         BannerLayout loopBanner = findViewById(R.id.banner_loop);
-        loopBanner.setLoop(true)
-                .setIndicator(true)
+        loopBanner.setIndicator(false)
                 .setImageLoader(new MyImageLoader())
+                .load(list.toArray())
+                .build()
+                .play();
+
+        BannerLayout loopBanner1 = findViewById(R.id.banner_loop1);
+        loopBanner1.setIndicator(true)
+                .setImageLoader(new MyImageLoader())
+                .load(list.toArray())
                 .setTransformerStyle(TransformerStyle.STYLE_NONE)
-                .load(list)
                 .build();
-//                .play(2);
     }
 }

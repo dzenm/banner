@@ -1,18 +1,15 @@
 package com.dzenm.banner;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.util.AttributeSet;
+import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
 import com.dzenm.banner.impl.IIndicator;
 import com.dzenm.banner.impl.ImageLoader;
-import com.dzenm.banner.impl.OnItemClickListener;
-import com.dzenm.banner.impl.OnPageSelectedListener;
-import com.dzenm.banner.impl.PageTransformer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -78,7 +75,7 @@ import java.util.List;
  *     .build();
  * </pre>
  */
-public class BannerLayout extends PagerLayout implements IIndicator {
+public class BannerLayout extends PagerLayout implements IIndicator, ViewTreeObserver.OnGlobalLayoutListener {
 
     /**
      * 指示灯的Layout和选中的指示灯
@@ -88,10 +85,7 @@ public class BannerLayout extends PagerLayout implements IIndicator {
     private LinearLayout mIndicatorLayout;
     private ImageView mIndicatorImageView;
 
-    /**
-     * 图片, 可以使用url, bitmap, drawable, resource
-     */
-    private List mImages;
+    private Object[] mImages;
 
     /**
      * 是否显示指示灯 {@link #setIndicator(boolean)}
@@ -104,14 +98,11 @@ public class BannerLayout extends PagerLayout implements IIndicator {
     private int mSelectedIndicator, mUnSelectedIndicator;
 
     /**
-     * 图片加载, 使用第三方框架加载 {@link ImageLoader}
+     * 两个指示灯的间距
      */
-    private ImageLoader mImageLoader;
+    private float mIndicatorDistance;
 
-    /**
-     * 自定义指示器 {@link #setIIndicator(IIndicator)}
-     */
-    private IIndicator mIIndicator;
+    private ImageLoader mImageLoader;
 
     public BannerLayout(Context context) {
         this(context, null);
@@ -124,12 +115,12 @@ public class BannerLayout extends PagerLayout implements IIndicator {
     public BannerLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
 
-        @SuppressLint("Recycle") TypedArray t = context.obtainStyledAttributes(attrs, R.styleable.BannerLayout);
+        TypedArray t = context.obtainStyledAttributes(attrs, R.styleable.BannerLayout);
         mSelectedIndicator = t.getInteger(R.styleable.BannerLayout_selectorIndicator, R.drawable.select);
-        mUnSelectedIndicator = t.getInteger(R.styleable.BannerLayout_selectorIndicator, R.drawable.unselect);
+        mUnSelectedIndicator = t.getInteger(R.styleable.BannerLayout_unSelectorIndicator, R.drawable.unselect);
         isShowIndicator = t.getBoolean(R.styleable.BannerLayout_showIndicator, true);
-
         t.recycle();
+
         initializeView(context);
     }
 
@@ -145,7 +136,7 @@ public class BannerLayout extends PagerLayout implements IIndicator {
         addView(mRootLayout);
 
         // 未选中的一组指示器的布局
-        LinearLayout.LayoutParams unIndicatorParams = new LinearLayout.LayoutParams(
+        RelativeLayout.LayoutParams unIndicatorParams = new RelativeLayout.LayoutParams(
                 LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
         mIndicatorLayout = new LinearLayout(context);
         mIndicatorLayout.setLayoutParams(unIndicatorParams);
@@ -160,57 +151,9 @@ public class BannerLayout extends PagerLayout implements IIndicator {
         mRootLayout.addView(mIndicatorImageView);
     }
 
-    @Override
-    public BannerLayout setPagerMargin(int viewMargin) {
-        return super.setPagerMargin(viewMargin);
-    }
-
-    @Override
-    public BannerLayout setViewPagerMarginHorizontal(int horizontal) {
-        return super.setViewPagerMarginHorizontal(horizontal);
-    }
-
-    @Override
-    public BannerLayout setViewPagerMarginVertical(int vertical) {
-        return super.setViewPagerMarginVertical(vertical);
-    }
-
-    @Override
-    public BannerLayout setTransformerStyle(int transformerStyle) {
-        return super.setTransformerStyle(transformerStyle);
-    }
-
-    @Override
-    public BannerLayout setLoop(boolean loop) {
-        return super.setLoop(loop);
-    }
-
-    @Override
-    public BannerLayout setGallery(boolean gallery) {
-        return super.setGallery(gallery);
-    }
-
-    @Override
-    public BannerLayout setOnItemClickListener(OnItemClickListener itemClickListener) {
-        return super.setOnItemClickListener(itemClickListener);
-    }
-
-    @Override
-    public BannerLayout setOnPageSelectedListener(OnPageSelectedListener onPageSelectedListener) {
-        return super.setOnPageSelectedListener(onPageSelectedListener);
-    }
-
-    @Override
-    public BannerLayout setTransformer(PageTransformer pageTransformer) {
-        return super.setTransformer(pageTransformer);
-    }
-
-    public BannerLayout load(List lists) {
-        mImages = lists;
-        mViewCount = lists.size();
-        if (mViewCount <= 2) {
-            throw new NumberFormatException("lists must more than two");
-        }
+    public BannerLayout load(Object[] images) {
+        mImages = images;
+        mImageCount = images.length;
         return this;
     }
 
@@ -240,34 +183,12 @@ public class BannerLayout extends PagerLayout implements IIndicator {
         return this;
     }
 
-    public BannerLayout setIIndicator(IIndicator iIndicator) {
-        mIIndicator = iIndicator;
-        return this;
-    }
-
-    public BannerLayout setIndicatorVisible(int visible) {
-        mIndicatorLayout.setVisibility(visible);
-        mIndicatorImageView.setVisibility(visible);
-        return this;
-    }
-
     @Override
-    public BannerLayout build() {
-        return super.build();
-    }
-
-    @Override
-    protected void buildViewPager(PagerHelper pagerHelper) {
-        super.buildViewPager(pagerHelper);
+    protected void buildViewPager() {
         if (isShowIndicator) {
-            pagerHelper.setShowIndicator();
-            pagerHelper.setIndicatorLayout(mIndicatorLayout);
-            pagerHelper.setIndicatorImageView(mIndicatorImageView);
-            if (mIIndicator == null) {
-                createIndicator(mIndicatorLayout, dp2px(4), mViewCount);
-            } else {
-                mIIndicator.createIndicator(mIndicatorLayout, dp2px(4), mViewCount);
-            }
+            // 监听小圆点滑动的跳转
+            mIndicatorImageView.getViewTreeObserver().addOnGlobalLayoutListener(this);
+            createIndicator(mIndicatorLayout, dp2px(4), mImageCount);
         } else {
             mRootLayout.setVisibility(GONE);
         }
@@ -291,8 +212,54 @@ public class BannerLayout extends PagerLayout implements IIndicator {
     }
 
     @Override
-    public void onViewPagerChange(int viewPosition, int position) {
-        super.onViewPagerChange(viewPosition, position);
-        mImageLoader.onLoader(mViews.get(viewPosition), mImages.get(position));
+    protected void adjustViewPosition(int viewPosition, int position) {
+        mImageLoader.onLoader(mViews.get(viewPosition), mImages[position]);
+    }
+
+    @Override
+    protected void onIndicatorBehavior(boolean isLoop, int position,
+                                       float positionOffset, int currentViewPosition) {
+        if (isShowIndicator) {  // 提示的小圆点
+            RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) mIndicatorImageView.getLayoutParams();
+            if (isLoop) {
+                float offset = indicatorBehavior(position, positionOffset, currentViewPosition, mImageCount);
+                params.leftMargin = (int) (offset * mIndicatorDistance);
+            } else {
+                params.leftMargin = (int) ((positionOffset + position) * mIndicatorDistance);
+            }
+            mIndicatorImageView.setLayoutParams(params);
+        }
+    }
+
+    private float indicatorBehavior(int position, float offset, int currentPosition, int size) {
+        float offsetDistance = 0;
+        if (position == 0) {                    // 左滑(offset从1.0-0.0结束)
+            if (currentPosition == 0) {         // 是否是第一个向左滑动，并且显示到最后一个
+                if (offset > 0.5) {
+                    offsetDistance = offset - 1;
+                } else {
+                    offsetDistance = (size - 1) + offset;
+                }
+            } else {
+                offsetDistance = currentPosition - (1 - offset);
+            }
+        } else if (position == 1) {             // 右滑(offset从0.0-1.0结束)
+            if (currentPosition == size - 1) {  // 是否是最后一个向左滑动，并且显示到第一个
+                if (offset < 0.5) {
+                    offsetDistance = (size - 1) + offset;
+                } else {
+                    offsetDistance = offset - 1;
+                }
+            } else {
+                offsetDistance = currentPosition + offset;
+            }
+        }
+        return offsetDistance;
+    }
+
+    @Override
+    public void onGlobalLayout() {
+        mIndicatorDistance = mIndicatorLayout.getChildAt(1).getLeft() - mIndicatorLayout.getChildAt(0).getLeft();    // 两个圆点之间的距离
+        mIndicatorImageView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
     }
 }

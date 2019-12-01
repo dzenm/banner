@@ -1,9 +1,9 @@
-package com.dzenm.banner;
+package com.dzenm.banner.impl;
 
 /**
  * @author dzenm
  * @date 2019-09-07 09:17
  */
-interface OnViewPagerChangeListener {
+public interface OnViewPagerChangeListener {
     void onViewPagerChange(int viewPosition, int position);
 }

@@ -13,7 +13,7 @@ import com.dzenm.banner2.impl.TransformerStyle;
  * @author dzenm
  * @date 2019-08-10 21:00
  */
-class ViewPagerTransformer implements ViewPager.PageTransformer {
+class Transformer implements ViewPager.PageTransformer {
 
     private static final float MAX_SCALE = 1.0f;
     private static final float MIN_SCALE = 0.85f;
@@ -28,8 +28,8 @@ class ViewPagerTransformer implements ViewPager.PageTransformer {
 
     private PageTransformer mPageTransformer;
 
-    ViewPagerTransformer(@TransformerStyle int style, @NonNull ViewPager viewPager,
-                         PageTransformer pageTransformer) {
+    Transformer(@TransformerStyle int style, @NonNull ViewPager viewPager,
+                PageTransformer pageTransformer) {
         mStyle = style;
         mViewPager = viewPager;
         mOffscreenPageLimit = mViewPager.getOffscreenPageLimit();

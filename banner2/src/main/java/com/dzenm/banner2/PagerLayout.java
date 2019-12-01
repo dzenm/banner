@@ -251,7 +251,7 @@ public class PagerLayout extends RelativeLayout implements IView, View.OnClickLi
         }
 
         mViewPager.setPageTransformer(false,
-                new ViewPagerTransformer(mTransformerStyle, mViewPager, mPageTransformer));
+                new Transformer(mTransformerStyle, mViewPager, mPageTransformer));
 
         viewPagerAdapter.setOnPageSelectedListener(mOnPageSelectedListener);
     }

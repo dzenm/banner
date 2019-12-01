@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.dzenm.banner2.IndicatorView;
 import com.dzenm.banner2.PagerLayout;
+import com.dzenm.banner2.impl.TransformerStyle;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,14 +22,14 @@ public class Banner2Activity extends AppCompatActivity implements View.OnClickLi
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_banner2);
 
-        final PagerLayout pl_gallery = findViewById(R.id.pl_gallery);
+        PagerLayout pl_gallery = findViewById(R.id.pl_gallery);
         indicatorView = findViewById(R.id.custom_indicator);
         Button btn1 = findViewById(R.id.btn_type1);
         Button btn2 = findViewById(R.id.btn_type2);
         btn1.setOnClickListener(this);
         btn2.setOnClickListener(this);
 
-        final List<Integer> images = new ArrayList<>();
+        List<Integer> images = new ArrayList<>();
         images.add(R.drawable.one);
         images.add(R.drawable.three);
         images.add(R.drawable.four);
@@ -39,10 +40,23 @@ public class Banner2Activity extends AppCompatActivity implements View.OnClickLi
         pl_gallery.load(images)
                 .setItemViewMargin(0)
                 .gallery()
-                .setTransformerStyle(com.dzenm.banner2.impl.TransformerStyle.STYLE_3D)
-                .into(new MyTestImageLoader())
+                .setTransformerStyle(TransformerStyle.STYLE_3D)
+                .into(new MyImageLoader2())
                 .build();
         indicatorView.bindViewPager(pl_gallery.getViewPager());
+
+        PagerLayout pl_gallery1 = findViewById(R.id.pl_gallery1);
+        IndicatorView indicatorView1 = findViewById(R.id.custom_indicator1);
+
+        pl_gallery1.load(images)
+                .setItemViewMargin(0)
+                .gallery()
+                .loop()
+                .setTransformerStyle(TransformerStyle.STYLE_3D)
+                .into(new MyImageLoader2())
+                .build();
+        indicatorView1.bindViewPager(pl_gallery1.getViewPager());
+
     }
 
     @Override

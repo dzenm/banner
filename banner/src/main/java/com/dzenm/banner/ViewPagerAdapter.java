@@ -1,14 +1,11 @@
 package com.dzenm.banner;
 
-import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 
 import androidx.annotation.NonNull;
 import androidx.viewpager.widget.PagerAdapter;
-
-import com.dzenm.banner.impl.OnRenderItemViewListener;
 
 import java.util.List;
 
@@ -18,17 +15,10 @@ import java.util.List;
  */
 class ViewPagerAdapter extends PagerAdapter {
 
-    private OnRenderItemViewListener mOnRenderItemViewListener;
-    private SparseArray<View> mViewCache;
     private List<View> mViews;
 
     ViewPagerAdapter(List<View> views) {
         mViews = views;
-        mViewCache = new SparseArray<>();
-    }
-
-    void setOnRenderItemViewListener(OnRenderItemViewListener onRenderItemViewListener) {
-        mOnRenderItemViewListener = onRenderItemViewListener;
     }
 
     @Override
@@ -41,26 +31,14 @@ class ViewPagerAdapter extends PagerAdapter {
         return view == object;
     }
 
-    /**
-     * @param container
-     * @param position
-     * @return 加载一个View视图
-     */
     @NonNull
     @Override
     public Object instantiateItem(@NonNull ViewGroup container, int position) {
-        View view = mViewCache.get(position);
-        if (view == null) {
-            view = mViews.get(position);
-            mViewCache.put(position, view);
-        }
+        View view = mViews.get(position);
         ViewParent viewParent = view.getParent();
         if (viewParent != null) {
             ViewGroup parent = (ViewGroup) viewParent;
             parent.removeView(view);
-        }
-        if (mOnRenderItemViewListener != null) {
-            mOnRenderItemViewListener.onRenderItemView(view, position);
         }
         container.addView(view);
         return view;
